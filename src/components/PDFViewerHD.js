@@ -2,6 +2,9 @@ import React, { useRef, useState } from "react";
 import * as pdfjsLib from 'pdfjs-dist';
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
+import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import '@react-pdf-viewer/core/lib/styles/index.css';
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -10,100 +13,76 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const PDFViewerHD = () => {
-    const canvasRef = useRef(null);
-    const [pdf, setPdf] = useState(null);
-    const [pageNumber, setPageNumber] = useState(1);
 
-    const handleFileUpload = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const fileReader = new FileReader();
-            fileReader.onload = () => {
-                const typedArray = new Uint8Array(fileReader.result);
-                loadPdf(typedArray);
-            };
-            fileReader.readAsArrayBuffer(file);
+    // creating new plugin instance
+    const defaultLayoutPluginInstance = defaultLayoutPlugin();
+
+    // pdf file onChange state
+    const [pdfFile, setPdfFile] = useState(null);
+
+    // pdf file error state
+    const [pdfError, setPdfError] = useState('');
+
+
+    // handle file onChange event
+    const allowedFiles = ['application/pdf'];
+    const handleFile = (e) => {
+        let selectedFile = e.target.files[0];
+        // console.log(selectedFile.type);
+        if (selectedFile) {
+            if (selectedFile && allowedFiles.includes(selectedFile.type)) {
+                let reader = new FileReader();
+                reader.readAsDataURL(selectedFile);
+                reader.onloadend = (e) => {
+                    setPdfError('');
+                    setPdfFile(e.target.result);
+                }
+            }
+            else {
+                setPdfError('Not a valid pdf: Please select only PDF');
+                setPdfFile('');
+            }
         }
-    };
-
-    const loadPdf = async (pdfData) => {
-        try {
-            const loadedPdf = await pdfjsLib.getDocument(pdfData).promise;
-            setPdf(loadedPdf);
-            setPageNumber(1);
-            renderPage(loadedPdf, 1);
-        } catch (error) {
-            console.error("Error loading PDF:", error);
+        else {
+            console.log('please select a PDF');
         }
-    };
-
-    const renderPage = async (pdf, pageNum) => {
-        try {
-            const page = await pdf.getPage(pageNum);
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = canvasRef.current;
-            const context = canvas.getContext("2d");
-
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport,
-            };
-
-            await page.render(renderContext).promise;
-        } catch (error) {
-            console.error("Error rendering page:", error);
-        }
-    };
-
-    const handlePrevPage = () => {
-        if (pageNumber > 1) {
-            const newPage = pageNumber - 1;
-            setPageNumber(newPage);
-            renderPage(pdf, newPage);
-        }
-    };
-
-    const handleNextPage = () => {
-        if (pdf && pageNumber < pdf.numPages) {
-            const newPage = pageNumber + 1;
-            setPageNumber(newPage);
-            renderPage(pdf, newPage);
-        }
-    };
+    }
 
     return (
-        <div style={{ padding: "20px" }}>
-            <h1>PDF Viewer</h1>
-            <input
-                type="file"
-                accept="application/pdf"
-                onChange={handleFileUpload}
-                style={{ marginBottom: "20px" }}
-            />
-            <Worker workerUrl={pdfjsLib.GlobalWorkerOptions.workerSrc}>
-                <Viewer
-                    fileUrl={`https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf`}
-                />
-            </Worker>
-            {pdf && (
-                <div>
-                    <button onClick={handlePrevPage} disabled={pageNumber <= 1}>
-                        Previous
-                    </button>
-                    <button
-                        onClick={handleNextPage}
-                        disabled={pdf && pageNumber >= pdf.numPages}
-                    >
-                        Next
-                    </button>
-                    <p>
-                        Page {pageNumber} of {pdf.numPages}
-                    </p>
-                </div>
-            )}
+        <div className="container">
+
+            {/* Upload PDF */}
+            <form>
+
+                <label><h5>Upload PDF</h5></label>
+                <br></br>
+
+                <input type='file' className="form-control"
+                    onChange={handleFile}></input>
+
+                {/* we will display error message in case user select some file
+        other than pdf */}
+                {pdfError && <span className='text-danger'>{pdfError}</span>}
+
+            </form>
+
+            {/* View PDF */}
+            <h5>View PDF</h5>
+            <div className="viewer">
+
+                {/* render this if we have a pdf file */}
+                {pdfFile && (
+                    <Worker workerUrl={pdfjsLib.GlobalWorkerOptions.workerSrc}>
+                        <Viewer fileUrl={pdfFile}
+                            plugins={[defaultLayoutPluginInstance]}></Viewer>
+                    </Worker>
+                )}
+
+                {/* render this if we have pdfFile state null   */}
+                {!pdfFile && <>No file is selected yet</>}
+
+            </div>
+
         </div>
     );
 };
