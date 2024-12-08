@@ -1,13 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import PDFViewerHD from './components/PDFViewerHD';
 import reportWebVitals from './reportWebVitals';
 import 'bootstrap/dist/css/bootstrap.css'
+import PDFViewerTOC from './components/PDFViewerTOC';
+// import { GlobalWorkerOptions } from "pdfjs-dist";
+
+// GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/@4.8.69/pdf.worker.min.js`;
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <PDFViewerTOC />
   </React.StrictMode>,
   document.getElementById('root')
 );
